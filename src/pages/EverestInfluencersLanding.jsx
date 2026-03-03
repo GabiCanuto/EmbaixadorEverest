@@ -131,7 +131,7 @@ const faqs = [
   },
   {
     q: "Como funciona a remuneração?",
-    a: "Depende do perfil e do modelo de parceria: permuta, fee por conteúdo e/ou comissão via cupom rastreável.",
+    a: "Depende do perfil e do modelo de parceria: produtos, fee por conteúdo e/ou comissão via cupom rastreável.",
   },
   {
     q: "Quais plataformas vocês trabalham?",
@@ -870,7 +870,7 @@ export default function EverestInfluencersLanding() {
             <motion.div variants={stagger} className="flex flex-wrap gap-2">
               <Pill icon={Users} isMobile={isMobile}>Parcerias reais</Pill>
               <Pill icon={BadgeCheck} isMobile={isMobile}>Briefing + liberdade criativa</Pill>
-              <Pill icon={Gift} isMobile={isMobile}>Permuta + comissão</Pill>
+              <Pill icon={Gift} isMobile={isMobile}>Produtos + comissão</Pill>
             </motion.div>
 
             <motion.h1
