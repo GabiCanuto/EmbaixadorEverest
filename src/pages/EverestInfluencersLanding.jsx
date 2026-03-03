@@ -47,7 +47,7 @@ const BRAND = {
 
 // ✅ Link do formulário (Aplicar agora / Quero me cadastrar / Quero participar)
 const APPLY_LINK =
-  "https://script.google.com/macros/s/AKfycbwBWGl_wDSXWX6ZdhKg6bnb9EQj7jy4Owt6TUWzU-TH/dev";
+  "https://script.google.com/macros/s/AKfycbw6jYLmBYebnMtlmtr-QLVEJ1qnRJErmD8ucGP99USALbvCt86E8BNe4oVXx3cwFe-cMw/exec";
 
 // ===== EVRST THEME (dourado + preto) =====
 const EVRST = {
