@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   AnimatePresence,
   motion,
-  useMotionValue,
   useReducedMotion,
   useScroll,
   useSpring,
@@ -32,6 +31,13 @@ import {
  * EVEREST — Programa de Influenciadores (EVRST theme)
  * React + Tailwind + Framer Motion
  *
+ * ✅ Versão MAIS LEVE (mantém bonito):
+ * - Remove cursor glow (mouse tracking) ✅
+ * - Reduz animações infinitas e blur pesado ✅
+ * - Simplifica tilt 3D (menos cálculos) ✅
+ * - Remove blur em fadeUp (filter é caro) ✅
+ * - Gradient border sem backgroundPosition infinito (fica elegante no hover) ✅
+ *
  * Dependências:
  *   npm i framer-motion lucide-react
  */
@@ -52,7 +58,7 @@ const BRAND = {
 const APPLY_LINK =
   "https://script.google.com/macros/s/AKfycbwBWGl_wDSXWX6ZdhKg6bnb9EQj7jy4Owt6TUWzU-TH/dev";
 
-// ===== EVRST THEME (dourado + preto, sem “risco” no fundo) =====
+// ===== EVRST THEME (dourado + preto) =====
 const EVRST = {
   gold: "#FFD100",
   gold2: "#FFB700",
@@ -99,8 +105,7 @@ const mockInfluencers = [
     reach: "15k",
     collabs: "10",
     photo: "/rayssa.jpg",
-    quote:
-      "Campanha bem organizada e resultado real. É parceria que dá gosto de fazer.",
+    quote: "Campanha bem organizada e resultado real. É parceria que dá gosto de fazer.",
     social:
       "https://www.instagram.com/raissa.everest?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==",
   },
@@ -134,7 +139,7 @@ const faqs = [
   },
   {
     q: "Como funciona a remuneração?",
-    a: "Depende do perfil e do modelo de parceria: permuta, fee por conteúdo ",
+    a: "Depende do perfil e do modelo de parceria: permuta, fee por conteúdo e/ou comissão via cupom rastreável.",
   },
   {
     q: "Quais plataformas vocês trabalham?",
@@ -146,23 +151,23 @@ const faqs = [
   },
 ];
 
-// Motion presets
+// Motion presets (mais leves)
 const easeOut = [0.21, 0.8, 0.2, 1];
 const viewportOnce = { once: true, margin: "-90px" };
 
+// ✅ Mais leve: remove filter/blur (filter é caro)
 const fadeUp = {
-  hidden: { opacity: 0, y: 14, filter: "blur(10px)" },
+  hidden: { opacity: 0, y: 12 },
   show: (i = 0) => ({
     opacity: 1,
     y: 0,
-    filter: "blur(0px)",
-    transition: { duration: 0.75, delay: i * 0.06, ease: easeOut },
+    transition: { duration: 0.55, delay: i * 0.05, ease: easeOut },
   }),
 };
 
 const stagger = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.085, delayChildren: 0.06 } },
+  show: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } },
 };
 
 function cx(...xs) {
@@ -196,7 +201,7 @@ function useActiveSection(ids) {
       {
         root: null,
         rootMargin: "-40% 0px -55% 0px",
-        threshold: [0.1, 0.2, 0.35, 0.5, 0.65],
+        threshold: [0.15, 0.35, 0.55],
       }
     );
 
@@ -253,20 +258,28 @@ function CrownDoodle({ className = "" }) {
   );
 }
 
+// ✅ MAIS LEVE: borda gradiente elegante sem animação infinita
 function GradientBorderCard({ children, className = "" }) {
   return (
     <motion.div
-      whileHover={{ y: -4 }}
       className={cx("relative rounded-3xl p-[1px]", className)}
+      whileHover={{ y: -3 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
     >
-      <motion.div
+      <div
         className="absolute inset-0 rounded-3xl opacity-60"
-        animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
-        transition={{ duration: 7, repeat: Infinity, ease: "linear" }}
         style={{
           backgroundImage:
             "linear-gradient(90deg, rgba(255,209,0,0.55), rgba(255,255,255,0.06), rgba(255,183,0,0.55))",
-          backgroundSize: "220% 220%",
+        }}
+      />
+      <motion.div
+        className="absolute inset-0 rounded-3xl opacity-0"
+        whileHover={{ opacity: 0.55 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+        style={{
+          backgroundImage:
+            "linear-gradient(90deg, rgba(255,209,0,0.75), rgba(255,255,255,0.08), rgba(255,183,0,0.75))",
         }}
       />
       <div className="relative rounded-3xl border border-white/10 bg-zinc-950/40 backdrop-blur">
@@ -281,7 +294,7 @@ function Pill({ icon: Icon, children }) {
     <motion.div
       variants={fadeUp}
       className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-4 py-2 text-sm text-white/90 shadow-sm backdrop-blur"
-      whileHover={{ y: -2, scale: 1.02 }}
+      whileHover={{ y: -1 }}
       whileTap={{ scale: 0.98 }}
     >
       <Icon className="h-4 w-4" style={{ color: EVRST.gold }} />
@@ -340,8 +353,12 @@ function ShineButton({ children, className, style, ...props }) {
       style={{ background: goldGrad, ...style }}
       {...props}
     >
-      <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-        <span className="absolute -left-1/3 top-0 h-full w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-[shine_1.15s_ease-in-out_infinite]" />
+      {/* ✅ Shine mais leve: só aparece no hover, sem loop infinito */}
+      <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+        <span
+          className="absolute -left-1/3 top-0 h-full w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/60 to-transparent"
+          style={{ animation: "shine 1.1s ease-in-out 1" }}
+        />
       </span>
       {children}
     </motion.a>
@@ -364,43 +381,6 @@ function OutlineButton({ children, className, ...props }) {
   );
 }
 
-function Magnetic({ children, className = "", ...props }) {
-  const reduce = useReducedMotion();
-  const ref = useRef(null);
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const sx = useSpring(x, { stiffness: 220, damping: 18 });
-  const sy = useSpring(y, { stiffness: 220, damping: 18 });
-
-  function onMove(e) {
-    if (reduce) return;
-    const el = ref.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const dx = e.clientX - (r.left + r.width / 2);
-    const dy = e.clientY - (r.top + r.height / 2);
-    x.set(dx * 0.15);
-    y.set(dy * 0.15);
-  }
-  function onLeave() {
-    x.set(0);
-    y.set(0);
-  }
-
-  return (
-    <motion.a
-      ref={ref}
-      onMouseMove={onMove}
-      onMouseLeave={onLeave}
-      style={reduce ? undefined : { x: sx, y: sy }}
-      className={className}
-      {...props}
-    >
-      {children}
-    </motion.a>
-  );
-}
-
 function AnimatedNumber({ value, label }) {
   const ref = useRef(null);
   const on = useOnScreen(ref, {
@@ -416,7 +396,7 @@ function AnimatedNumber({ value, label }) {
     if (reduce) return setN(value);
 
     const start = performance.now();
-    const duration = 900;
+    const duration = 650; // ✅ mais rápido = menos frames
 
     const tick = (t) => {
       const p = Math.min(1, (t - start) / duration);
@@ -435,7 +415,7 @@ function AnimatedNumber({ value, label }) {
       initial="hidden"
       whileInView="show"
       viewport={viewportOnce}
-      whileHover={{ y: -2 }}
+      whileHover={{ y: -1 }}
       className="rounded-2xl border border-white/10 bg-zinc-950/35 p-4 backdrop-blur"
     >
       <div className="text-2xl font-semibold text-white">{n}</div>
@@ -451,15 +431,13 @@ function Feature({ icon: Icon, title, body }) {
       initial="hidden"
       whileInView="show"
       viewport={viewportOnce}
-      whileHover={{ y: -6 }}
+      whileHover={{ y: -3 }}
+      transition={{ duration: 0.22, ease: "easeOut" }}
       className="rounded-2xl border border-white/10 bg-zinc-950/35 p-6 shadow-sm backdrop-blur"
     >
-      <motion.div
-        className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10"
-        whileHover={{ rotate: 3, scale: 1.02 }}
-      >
+      <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
         <Icon className="h-5 w-5 text-white" />
-      </motion.div>
+      </div>
       <h3 className="text-lg font-semibold text-white">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-white/70">{body}</p>
     </motion.div>
@@ -473,14 +451,16 @@ function InfluencerCard({ data }) {
       initial="hidden"
       whileInView="show"
       viewport={viewportOnce}
-      whileHover={{ y: -8, rotate: -0.25 }}
+      whileHover={{ y: -4 }}
+      transition={{ duration: 0.22, ease: "easeOut" }}
       className="group overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/35 shadow-sm backdrop-blur"
     >
       <div className="relative aspect-[4/3] overflow-hidden">
         <img
           src={data.photo}
           alt={data.name}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
         <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
@@ -506,10 +486,7 @@ function InfluencerCard({ data }) {
             {data.niche}
           </span>
           <span className="rounded-full border border-white/10 bg-zinc-950/40 px-3 py-1 text-xs text-white/80">
-            <MapPin
-              className="mr-1 inline h-3.5 w-3.5"
-              style={{ color: EVRST.gold }}
-            />
+            <MapPin className="mr-1 inline h-3.5 w-3.5" style={{ color: EVRST.gold }} />
             {data.city}
           </span>
         </div>
@@ -520,9 +497,7 @@ function InfluencerCard({ data }) {
             <div className="text-sm text-white/70">Alcance</div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-zinc-950/35 p-4 backdrop-blur">
-            <div className="text-2xl font-semibold text-white">
-              {data.collabs}
-            </div>
+            <div className="text-2xl font-semibold text-white">{data.collabs}</div>
             <div className="text-sm text-white/70">Collabs</div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-zinc-950/35 p-4 backdrop-blur">
@@ -531,9 +506,7 @@ function InfluencerCard({ data }) {
           </div>
         </div>
 
-        <p className="mt-4 text-sm leading-relaxed text-white/75">
-          “{data.quote}”
-        </p>
+        <p className="mt-4 text-sm leading-relaxed text-white/75">“{data.quote}”</p>
       </div>
     </motion.div>
   );
@@ -568,6 +541,7 @@ function FaqItem({ q, a }) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
             className="overflow-hidden"
           >
             <p className="mt-3 text-sm leading-relaxed text-white/70">{a}</p>
@@ -578,60 +552,22 @@ function FaqItem({ q, a }) {
   );
 }
 
-function HeroTiltCard({ children }) {
+// ✅ MAIS LEVE: sem tilt 3D com mouse (mantém “glow” e profundidade estática)
+function HeroCardShell({ children }) {
   const reduce = useReducedMotion();
-  const ref = useRef(null);
-
-  const mx = useMotionValue(0);
-  const my = useMotionValue(0);
-
-  const rx = useSpring(mx, { stiffness: 180, damping: 22 });
-  const ry = useSpring(my, { stiffness: 180, damping: 22 });
-
-  function onMove(e) {
-    if (reduce) return;
-    const el = ref.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const px = (e.clientX - r.left) / r.width;
-    const py = (e.clientY - r.top) / r.height;
-
-    const tiltX = (0.5 - py) * 8;
-    const tiltY = (px - 0.5) * 10;
-
-    mx.set(tiltX);
-    my.set(tiltY);
-  }
-
-  function onLeave() {
-    mx.set(0);
-    my.set(0);
-  }
-
   return (
-    <motion.div
-      ref={ref}
-      onMouseMove={onMove}
-      onMouseLeave={onLeave}
-      style={
-        reduce
-          ? undefined
-          : {
-              transformStyle: "preserve-3d",
-              rotateX: rx,
-              rotateY: ry,
-            }
-      }
-      className="relative"
-    >
+    <div className="relative">
       <div
         className="absolute inset-0 -z-10 rounded-3xl blur-2xl"
         style={{ background: "rgba(255,209,0,.06)" }}
       />
-      <div style={reduce ? undefined : { transform: "translateZ(18px)" }}>
+      <motion.div
+        whileHover={reduce ? undefined : { y: -3 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
+      >
         {children}
-      </div>
-    </motion.div>
+      </motion.div>
+    </div>
   );
 }
 
@@ -656,9 +592,9 @@ function Navbar({ activeId }) {
           className="flex items-center gap-3"
         >
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 260, damping: 18 }}
+            transition={{ type: "spring", stiffness: 240, damping: 18 }}
             className="relative grid h-10 w-10 place-items-center overflow-hidden rounded-2xl bg-white/10"
           >
             <div
@@ -672,9 +608,7 @@ function Navbar({ activeId }) {
           </motion.div>
 
           <div className="leading-tight">
-            <div className="text-sm font-semibold tracking-wide">
-              {BRAND.name}
-            </div>
+            <div className="text-sm font-semibold tracking-wide">{BRAND.name}</div>
             <div className="text-xs text-white/70">{BRAND.highlight}</div>
           </div>
         </a>
@@ -718,16 +652,18 @@ function Navbar({ activeId }) {
             Instagram
           </a>
 
-          <Magnetic
+          <motion.a
             href={APPLY_LINK}
             target="_blank"
             rel="noreferrer"
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
             className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-zinc-950 shadow-sm"
             style={{ background: goldGrad }}
           >
             Quero participar
             <ArrowRight className="h-4 w-4" />
-          </Magnetic>
+          </motion.a>
         </div>
       </div>
     </header>
@@ -735,6 +671,7 @@ function Navbar({ activeId }) {
 }
 
 function DragCarousel({ children }) {
+  // ✅ Mantém drag (leve), mas evita recalcular 1000x
   const outerRef = useRef(null);
   const innerRef = useRef(null);
   const [constraints, setConstraints] = useState({ left: 0, right: 0 });
@@ -769,7 +706,7 @@ function DragCarousel({ children }) {
       <motion.div
         ref={innerRef}
         drag="x"
-        dragElastic={0.08}
+        dragElastic={0.06}
         dragConstraints={constraints}
         className="flex gap-4"
       >
@@ -808,20 +745,9 @@ export default function EverestInfluencersLanding() {
     msg
   )}`;
 
-  // Scroll progress bar
+  // Scroll progress bar (ok, leve)
   const { scrollYProgress } = useScroll();
-  const progress = useSpring(scrollYProgress, { stiffness: 160, damping: 30 });
-
-  // Cursor glow
-  const [cursor, setCursor] = useState({ x: -999, y: -999 });
-  useEffect(() => {
-    const isCoarse = window.matchMedia?.("(pointer: coarse)")?.matches;
-    if (reduce || isCoarse) return;
-
-    const onMove = (e) => setCursor({ x: e.clientX, y: e.clientY });
-    window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
-  }, [reduce]);
+  const progress = useSpring(scrollYProgress, { stiffness: 140, damping: 28 });
 
   return (
     <div
@@ -842,17 +768,7 @@ export default function EverestInfluencersLanding() {
         style={{ scaleX: progress, background: goldGrad }}
       />
 
-      {/* Cursor glow */}
-      {!reduce ? (
-        <motion.div
-          className="pointer-events-none fixed z-10 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
-          style={{ background: "rgba(255,209,0,.08)" }}
-          animate={{ left: cursor.x, top: cursor.y }}
-          transition={{ type: "spring", stiffness: 140, damping: 28 }}
-        />
-      ) : null}
-
-      {/* Background — EVRST (sem risco/linhas) */}
+      {/* Background — EVRST (mais leve, sem blobs infinitos pesados) */}
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div
           className="absolute inset-0"
@@ -867,36 +783,28 @@ export default function EverestInfluencersLanding() {
           }}
         />
 
+        {/* textura sutil (mantém), mas reduz blur e opacidade */}
         <div
-          className="absolute inset-0 opacity-[0.07] mix-blend-soft-light"
+          className="absolute inset-0 opacity-[0.05] mix-blend-soft-light"
           style={{
             backgroundImage:
               "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='520' viewBox='0 0 520 520'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.28)' stroke-width='22' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M110 150 L210 55 L310 150'/%3E%3Cpath d='M210 55 L210 275'/%3E%3Cpath d='M310 310 L410 210 L510 310'/%3E%3Cpath d='M410 210 L410 430'/%3E%3Cpath d='M55 395 L155 295 L255 395'/%3E%3Cpath d='M155 295 L155 515'/%3E%3C/g%3E%3C/svg%3E\")",
             backgroundSize: "560px 560px",
             backgroundPosition: "center",
             transform: "rotate(-18deg) scale(1.12)",
-            filter: "blur(1px)",
+            filter: "blur(0.5px)",
           }}
         />
 
-        <motion.div
-          className="absolute -left-24 -top-24 h-80 w-80 rounded-full blur-3xl"
-          style={{ background: "rgba(255,209,0,.10)" }}
-          animate={{ x: [0, 18, 0], y: [0, 10, 0] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute right-0 top-40 h-96 w-96 rounded-full blur-3xl"
-          style={{ background: "rgba(255,209,0,.08)" }}
-          animate={{ x: [0, -16, 0], y: [0, 14, 0] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute bottom-0 left-1/3 h-96 w-96 rounded-full blur-3xl"
-          style={{ background: "rgba(255,183,0,.06)" }}
-          animate={{ x: [0, 12, 0], y: [0, -12, 0] }}
-          transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
-        />
+        {/* ✅ Um único glow bem lento (opcional) */}
+        {!reduce ? (
+          <motion.div
+            className="absolute right-[-80px] top-40 h-80 w-80 rounded-full blur-3xl"
+            style={{ background: "rgba(255,209,0,.07)" }}
+            animate={{ x: [0, -10, 0], y: [0, 8, 0] }}
+            transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
+          />
+        ) : null}
       </div>
 
       <Navbar activeId={activeId} />
@@ -957,15 +865,17 @@ export default function EverestInfluencersLanding() {
               variants={fadeUp}
               className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
             >
-              <Magnetic
+              <motion.a
                 href={APPLY_LINK}
                 target="_blank"
                 rel="noreferrer"
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
                 className="relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-3 text-sm font-semibold text-zinc-950 hover:opacity-95"
                 style={{ background: goldGrad }}
               >
                 Aplicar agora <ArrowRight className="h-4 w-4" />
-              </Magnetic>
+              </motion.a>
 
               <OutlineButton
                 href="#influenciadores"
@@ -986,60 +896,48 @@ export default function EverestInfluencersLanding() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, y: 18 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.85, ease: easeOut, delay: 0.05 }}
+            transition={{ duration: 0.6, ease: easeOut, delay: 0.03 }}
             className="relative"
           >
-            <HeroTiltCard>
+            <HeroCardShell>
               <GradientBorderCard>
                 <div className="overflow-hidden rounded-3xl">
-                  {/* ✅ AJUSTE: grid com 3 fotos (1 comprida em cima + 2 embaixo) */}
+                  {/* ✅ grid com 3 fotos (1 comprida em cima + 2 embaixo) */}
                   <div className="grid grid-cols-2 gap-0">
                     {/* Topo (comprida) */}
-                    <motion.div
-                      className="relative col-span-2 aspect-[16/9] overflow-hidden"
-                      initial={{ opacity: 0, scale: 1.04 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.75, delay: 0.08, ease: easeOut }}
-                    >
+                    <div className="relative col-span-2 aspect-[16/9] overflow-hidden">
                       <img
                         src="/arthur.jpg"
                         alt="Artur Zaltsman"
-                        className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.06]"
+                        className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.04]"
+                        loading="lazy"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                    </motion.div>
+                    </div>
 
                     {/* Inferior esquerda */}
-                    <motion.div
-                      className="relative aspect-square overflow-hidden"
-                      initial={{ opacity: 0, scale: 1.04 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.75, delay: 0.14, ease: easeOut }}
-                    >
+                    <div className="relative aspect-square overflow-hidden">
                       <img
                         src="/geysla.jpg"
                         alt="Geysla"
-                        className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.06]"
+                        className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.04]"
+                        loading="lazy"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                    </motion.div>
+                    </div>
 
                     {/* Inferior direita */}
-                    <motion.div
-                      className="relative aspect-square overflow-hidden"
-                      initial={{ opacity: 0, scale: 1.04 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.75, delay: 0.20, ease: easeOut }}
-                    >
+                    <div className="relative aspect-square overflow-hidden">
                       <img
                         src="/rayssa.jpg"
                         alt="Raissa"
-                        className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.06]"
+                        className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.04]"
+                        loading="lazy"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                    </motion.div>
+                    </div>
                   </div>
 
                   <div className="p-6">
@@ -1048,9 +946,7 @@ export default function EverestInfluencersLanding() {
                         <div className="text-xs uppercase tracking-wider text-white/60">
                           {BRAND.name}
                         </div>
-                        <div className="mt-1 text-lg font-semibold">
-                          {BRAND.tagline}
-                        </div>
+                        <div className="mt-1 text-lg font-semibold">{BRAND.tagline}</div>
                         <p className="mt-2 text-sm text-white/70">
                           Kits, cupons rastreáveis, campanhas sazonais e suporte
                           próximo — com estética e padrão.
@@ -1058,10 +954,7 @@ export default function EverestInfluencersLanding() {
                       </div>
                       <div className="hidden rounded-2xl border border-white/10 bg-zinc-950/35 p-3 text-xs text-white/70 md:block">
                         <div className="flex items-center gap-2">
-                          <Calendar
-                            className="h-4 w-4"
-                            style={{ color: EVRST.gold }}
-                          />
+                          <Calendar className="h-4 w-4" style={{ color: EVRST.gold }} />
                           Próxima campanha
                         </div>
                         <div className="mt-2 text-base font-semibold text-white">
@@ -1072,10 +965,7 @@ export default function EverestInfluencersLanding() {
 
                     <div className="mt-5 flex flex-wrap gap-2">
                       <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-3 py-1 text-xs text-white/80">
-                        <Camera
-                          className="h-3.5 w-3.5"
-                          style={{ color: EVRST.gold }}
-                        />{" "}
+                        <Camera className="h-3.5 w-3.5" style={{ color: EVRST.gold }} />{" "}
                         Reels + Stories
                       </span>
                       <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-3 py-1 text-xs text-white/80">
@@ -1096,7 +986,7 @@ export default function EverestInfluencersLanding() {
                   </div>
                 </div>
               </GradientBorderCard>
-            </HeroTiltCard>
+            </HeroCardShell>
           </motion.div>
         </div>
 
@@ -1182,39 +1072,23 @@ export default function EverestInfluencersLanding() {
                 <h3 className="text-lg font-semibold">O que você ganha</h3>
                 <ul className="mt-4 space-y-3 text-sm text-white/75">
                   <li className="flex gap-3">
-                    <BadgeCheck
-                      className="mt-0.5 h-5 w-5"
-                      style={{ color: EVRST.gold }}
-                    />
-                    <span>
-                      Produtos para criação e acesso a lançamentos exclusivos.
-                    </span>
+                    <BadgeCheck className="mt-0.5 h-5 w-5" style={{ color: EVRST.gold }} />
+                    <span>Produtos para criação e acesso a lançamentos exclusivos.</span>
                   </li>
                   <li className="flex gap-3">
-                    <Gift
-                      className="mt-0.5 h-5 w-5"
-                      style={{ color: EVRST.gold }}
-                    />
+                    <Gift className="mt-0.5 h-5 w-5" style={{ color: EVRST.gold }} />
                     <span>Acesso a benefícios exclusivos</span>
                   </li>
                   <li className="flex gap-3">
-                    <Star
-                      className="mt-0.5 h-5 w-5"
-                      style={{ color: EVRST.gold }}
-                    />
+                    <Star className="mt-0.5 h-5 w-5" style={{ color: EVRST.gold }} />
                     <span>
-                      Destaque em campanhas, reposts e collabs com outros
-                      creators.
+                      Destaque em campanhas, reposts e collabs com outros creators.
                     </span>
                   </li>
                   <li className="flex gap-3">
-                    <Users
-                      className="mt-0.5 h-5 w-5"
-                      style={{ color: EVRST.gold }}
-                    />
+                    <Users className="mt-0.5 h-5 w-5" style={{ color: EVRST.gold }} />
                     <span>
-                      Relacionamento com time de marketing: feedback,
-                      acompanhamento e evolução.
+                      Relacionamento com time de marketing: feedback, acompanhamento e evolução.
                     </span>
                   </li>
                 </ul>
@@ -1226,37 +1100,23 @@ export default function EverestInfluencersLanding() {
                 <h3 className="text-lg font-semibold">O que a gente procura</h3>
                 <ul className="mt-4 space-y-3 text-sm text-white/75">
                   <li className="flex gap-3">
-                    <BadgeCheck
-                      className="mt-0.5 h-5 w-5"
-                      style={{ color: EVRST.gold }}
-                    />
+                    <BadgeCheck className="mt-0.5 h-5 w-5" style={{ color: EVRST.gold }} />
                     <span>
-                      Consistência de postagem e linguagem alinhada com seu
-                      público.
+                      Consistência de postagem e linguagem alinhada com seu público.
                     </span>
                   </li>
                   <li className="flex gap-3">
-                    <Camera
-                      className="mt-0.5 h-5 w-5"
-                      style={{ color: EVRST.gold }}
-                    />
+                    <Camera className="mt-0.5 h-5 w-5" style={{ color: EVRST.gold }} />
                     <span>
-                      Qualidade mínima de vídeo/foto (não precisa ser perfeito —
-                      precisa ser claro).
+                      Qualidade mínima de vídeo/foto (não precisa ser perfeito — precisa ser claro).
                     </span>
                   </li>
                   <li className="flex gap-3">
-                    <Handshake
-                      className="mt-0.5 h-5 w-5"
-                      style={{ color: EVRST.gold }}
-                    />
+                    <Handshake className="mt-0.5 h-5 w-5" style={{ color: EVRST.gold }} />
                     <span>Compromisso com prazos e comunicação direta.</span>
                   </li>
                   <li className="flex gap-3">
-                    <Heart
-                      className="mt-0.5 h-5 w-5"
-                      style={{ color: EVRST.gold }}
-                    />
+                    <Heart className="mt-0.5 h-5 w-5" style={{ color: EVRST.gold }} />
                     <span>Conteúdo autêntico — sem personagem forçado.</span>
                   </li>
                 </ul>
@@ -1267,11 +1127,7 @@ export default function EverestInfluencersLanding() {
 
         {/* How it works */}
         <section id="como-funciona" className="mt-20">
-          <SectionTitle
-            kicker="Processo"
-            title="Como funciona"
-            subtitle="Simples, rápido e sem enrolação."
-          />
+          <SectionTitle kicker="Processo" title="Como funciona" subtitle="Simples, rápido e sem enrolação." />
 
           <motion.div
             variants={stagger}
@@ -1315,12 +1171,9 @@ export default function EverestInfluencersLanding() {
               <div className="p-6 md:p-7">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold">
-                      Quer participar da próxima campanha?
-                    </h3>
+                    <h3 className="text-lg font-semibold">Quer participar da próxima campanha?</h3>
                     <p className="mt-1 text-sm text-white/70">
-                      Preencha o formulário e a gente te chama assim que tiver
-                      uma ação que combine com você.
+                      Preencha o formulário e a gente te chama assim que tiver uma ação que combine com você.
                     </p>
                   </div>
 
@@ -1346,12 +1199,7 @@ export default function EverestInfluencersLanding() {
             subtitle="Creators que já estão no topo com a gente. Arraste pro lado."
           />
 
-          <motion.div
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={viewportOnce}
-          >
+          <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={viewportOnce}>
             <DragCarousel>
               {mockInfluencers.map((p) => (
                 <div key={p.handle} className="min-w-[320px] md:min-w-[420px]">
@@ -1382,15 +1230,10 @@ export default function EverestInfluencersLanding() {
                 <GradientBorderCard>
                   <div className="p-6">
                     <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
-                      <t.icon
-                        className="h-5 w-5"
-                        style={{ color: EVRST.gold }}
-                      />
+                      <t.icon className="h-5 w-5" style={{ color: EVRST.gold }} />
                     </div>
                     <div className="text-lg font-semibold">{t.name}</div>
-                    <p className="mt-2 text-sm leading-relaxed text-white/70">
-                      {t.body}
-                    </p>
+                    <p className="mt-2 text-sm leading-relaxed text-white/70">{t.body}</p>
                   </div>
                 </GradientBorderCard>
               </motion.div>
@@ -1446,50 +1289,21 @@ export default function EverestInfluencersLanding() {
 
         {/* CTA */}
         <section className="mt-20">
-          <motion.div
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={viewportOnce}
-          >
+          <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={viewportOnce}>
             <GradientBorderCard>
               <div className="relative overflow-hidden p-8 md:p-10">
-                <motion.div
-                  className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full blur-3xl"
-                  style={{ background: "rgba(255,209,0,.08)" }}
-                  animate={{ x: [0, -18, 0], y: [0, 10, 0] }}
-                  transition={{
-                    duration: 12,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
-                <motion.div
-                  className="pointer-events-none absolute -left-24 -bottom-24 h-72 w-72 rounded-full blur-3xl"
-                  style={{ background: "rgba(255,209,0,.07)" }}
-                  animate={{ x: [0, 16, 0], y: [0, -12, 0] }}
-                  transition={{
-                    duration: 11,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
-
+                {/* ✅ remove blobs animados do CTA (muito blur + infinito) */}
                 <div className="relative grid gap-6 md:grid-cols-2 md:items-center">
                   <div>
                     <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-4 py-2 text-xs uppercase tracking-wider text-white/80">
-                      <BadgeCheck
-                        className="h-4 w-4"
-                        style={{ color: EVRST.gold }}
-                      />
+                      <BadgeCheck className="h-4 w-4" style={{ color: EVRST.gold }} />
                       Parceria com padrão
                     </div>
                     <h3 className="mt-4 text-balance text-2xl font-semibold tracking-tight md:text-3xl">
                       Pronto pra criar a próxima campanha com a Everest?
                     </h3>
                     <p className="mt-2 text-sm text-white/70 md:text-base">
-                      Preencha o cadastro. Se o seu perfil combinar com o
-                      momento, a gente te chama.
+                      Preencha o cadastro. Se o seu perfil combinar com o momento, a gente te chama.
                     </p>
                   </div>
 
@@ -1510,11 +1324,7 @@ export default function EverestInfluencersLanding() {
                       target="_blank"
                       rel="noreferrer"
                     >
-                      <Instagram
-                        className="h-4 w-4"
-                        style={{ color: EVRST.gold }}
-                      />{" "}
-                      Instagram
+                      <Instagram className="h-4 w-4" style={{ color: EVRST.gold }} /> Instagram
                     </OutlineButton>
                   </div>
                 </div>
@@ -1528,9 +1338,7 @@ export default function EverestInfluencersLanding() {
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
               <div className="text-sm font-semibold">{BRAND.name}</div>
-              <div className="mt-1 text-sm text-white/60">
-                {BRAND.highlight}
-              </div>
+              <div className="mt-1 text-sm text-white/60">{BRAND.highlight}</div>
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -1551,8 +1359,7 @@ export default function EverestInfluencersLanding() {
                 target="_blank"
                 rel="noreferrer"
               >
-                <Instagram className="h-4 w-4" style={{ color: EVRST.gold }} />{" "}
-                Instagram
+                <Instagram className="h-4 w-4" style={{ color: EVRST.gold }} /> Instagram
               </a>
 
               <a
@@ -1563,18 +1370,13 @@ export default function EverestInfluencersLanding() {
                 target="_blank"
                 rel="noreferrer"
               >
-                <MessageCircle
-                  className="h-4 w-4"
-                  style={{ color: EVRST.gold }}
-                />{" "}
-                WhatsApp
+                <MessageCircle className="h-4 w-4" style={{ color: EVRST.gold }} /> WhatsApp
               </a>
             </div>
           </div>
 
           <div className="mt-6 text-xs text-white/50">
-            © {new Date().getFullYear()} {BRAND.name}. Todos os direitos
-            reservados.
+            © {new Date().getFullYear()} {BRAND.name}. Todos os direitos reservados.
           </div>
         </footer>
       </main>
