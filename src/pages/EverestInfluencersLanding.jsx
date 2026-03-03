@@ -1,11 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  AnimatePresence,
-  motion,
-  useReducedMotion,
-  useScroll,
-  useSpring,
-} from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion, useScroll, useSpring } from "framer-motion";
 import {
   ArrowRight,
   BadgeCheck,
@@ -31,15 +25,12 @@ import {
  * EVEREST — Programa de Influenciadores (EVRST theme)
  * React + Tailwind + Framer Motion
  *
- * ✅ Versão MAIS LEVE (mantém bonito):
- * - Remove cursor glow (mouse tracking) ✅
- * - Reduz animações infinitas e blur pesado ✅
- * - Simplifica tilt 3D (menos cálculos) ✅
- * - Remove blur em fadeUp (filter é caro) ✅
- * - Gradient border sem backgroundPosition infinito (fica elegante no hover) ✅
- *
- * Dependências:
- *   npm i framer-motion lucide-react
+ * ✅ Ajustado para ficar MAIS LEVE no celular (sem perder beleza):
+ * - Remove cursor glow (mouse tracking)
+ * - Reduz blur/backdrop-blur no mobile (principal vilão de travadas)
+ * - Carousel: no mobile vira scroll nativo com snap (super suave)
+ * - Hovers/elevações desativados no mobile (touch não precisa)
+ * - Imagens com decoding="async" e lazy/eager correto
  */
 
 const BRAND = {
@@ -105,7 +96,8 @@ const mockInfluencers = [
     reach: "15k",
     collabs: "10",
     photo: "/rayssa.jpg",
-    quote: "Campanha bem organizada e resultado real. É parceria que dá gosto de fazer.",
+    quote:
+      "Campanha bem organizada e resultado real. É parceria que dá gosto de fazer.",
     social:
       "https://www.instagram.com/raissa.everest?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==",
   },
@@ -155,13 +147,13 @@ const faqs = [
 const easeOut = [0.21, 0.8, 0.2, 1];
 const viewportOnce = { once: true, margin: "-90px" };
 
-// ✅ Mais leve: remove filter/blur (filter é caro)
+// ✅ remove filter/blur (filter é caro)
 const fadeUp = {
-  hidden: { opacity: 0, y: 12 },
+  hidden: { opacity: 0, y: 10 },
   show: (i = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.55, delay: i * 0.05, ease: easeOut },
+    transition: { duration: 0.45, delay: i * 0.04, ease: easeOut },
   }),
 };
 
@@ -230,6 +222,22 @@ function useOnScreen(ref, options) {
   return isIntersecting;
 }
 
+// ✅ detecta mobile para desligar blur/hover pesados
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const m = window.matchMedia?.(`(max-width: ${breakpoint - 1}px)`);
+    if (!m) return;
+    const onChange = () => setIsMobile(m.matches);
+    onChange();
+    m.addEventListener?.("change", onChange);
+    return () => m.removeEventListener?.("change", onChange);
+  }, [breakpoint]);
+
+  return isMobile;
+}
+
 // 👑 Coroinha rabiscada (no HERO, igual o print)
 function CrownDoodle({ className = "" }) {
   return (
@@ -258,13 +266,13 @@ function CrownDoodle({ className = "" }) {
   );
 }
 
-// ✅ MAIS LEVE: borda gradiente elegante sem animação infinita
-function GradientBorderCard({ children, className = "" }) {
+// ✅ borda gradiente elegante sem animação infinita
+function GradientBorderCard({ children, className = "", isMobile }) {
   return (
     <motion.div
       className={cx("relative rounded-3xl p-[1px]", className)}
-      whileHover={{ y: -3 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
+      whileHover={isMobile ? undefined : { y: -3 }}
+      transition={{ duration: 0.22, ease: "easeOut" }}
     >
       <div
         className="absolute inset-0 rounded-3xl opacity-60"
@@ -275,26 +283,35 @@ function GradientBorderCard({ children, className = "" }) {
       />
       <motion.div
         className="absolute inset-0 rounded-3xl opacity-0"
-        whileHover={{ opacity: 0.55 }}
-        transition={{ duration: 0.25, ease: "easeOut" }}
+        whileHover={isMobile ? undefined : { opacity: 0.55 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
         style={{
           backgroundImage:
             "linear-gradient(90deg, rgba(255,209,0,0.75), rgba(255,255,255,0.08), rgba(255,183,0,0.75))",
         }}
       />
-      <div className="relative rounded-3xl border border-white/10 bg-zinc-950/40 backdrop-blur">
+
+      <div
+        className={cx(
+          "relative rounded-3xl border border-white/10 bg-zinc-950/40",
+          isMobile ? "" : "backdrop-blur"
+        )}
+      >
         {children}
       </div>
     </motion.div>
   );
 }
 
-function Pill({ icon: Icon, children }) {
+function Pill({ icon: Icon, children, isMobile }) {
   return (
     <motion.div
       variants={fadeUp}
-      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-4 py-2 text-sm text-white/90 shadow-sm backdrop-blur"
-      whileHover={{ y: -1 }}
+      className={cx(
+        "inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-4 py-2 text-sm text-white/90 shadow-sm",
+        isMobile ? "" : "backdrop-blur"
+      )}
+      whileHover={isMobile ? undefined : { y: -1 }}
       whileTap={{ scale: 0.98 }}
     >
       <Icon className="h-4 w-4" style={{ color: EVRST.gold }} />
@@ -303,7 +320,7 @@ function Pill({ icon: Icon, children }) {
   );
 }
 
-function SectionTitle({ kicker, title, subtitle }) {
+function SectionTitle({ kicker, title, subtitle, isMobile }) {
   return (
     <motion.div
       variants={stagger}
@@ -315,7 +332,10 @@ function SectionTitle({ kicker, title, subtitle }) {
       {kicker ? (
         <motion.div
           variants={fadeUp}
-          className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-4 py-2 text-xs uppercase tracking-wider text-white/80 backdrop-blur"
+          className={cx(
+            "mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-4 py-2 text-xs uppercase tracking-wider text-white/80",
+            isMobile ? "" : "backdrop-blur"
+          )}
         >
           <Sparkles className="h-4 w-4" style={{ color: EVRST.gold }} />
           {kicker}
@@ -341,10 +361,10 @@ function SectionTitle({ kicker, title, subtitle }) {
   );
 }
 
-function ShineButton({ children, className, style, ...props }) {
+function ShineButton({ children, className, style, isMobile, ...props }) {
   return (
     <motion.a
-      whileHover={{ y: -2 }}
+      whileHover={isMobile ? undefined : { y: -2 }}
       whileTap={{ scale: 0.98 }}
       className={cx(
         "group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-3 text-sm font-semibold text-zinc-950 shadow-sm",
@@ -353,25 +373,28 @@ function ShineButton({ children, className, style, ...props }) {
       style={{ background: goldGrad, ...style }}
       {...props}
     >
-      {/* ✅ Shine mais leve: só aparece no hover, sem loop infinito */}
-      <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-        <span
-          className="absolute -left-1/3 top-0 h-full w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/60 to-transparent"
-          style={{ animation: "shine 1.1s ease-in-out 1" }}
-        />
-      </span>
+      {/* Shine: só no hover, sem loop infinito */}
+      {!isMobile ? (
+        <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+          <span
+            className="absolute -left-1/3 top-0 h-full w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/60 to-transparent"
+            style={{ animation: "shine 1.05s ease-in-out 1" }}
+          />
+        </span>
+      ) : null}
       {children}
     </motion.a>
   );
 }
 
-function OutlineButton({ children, className, ...props }) {
+function OutlineButton({ children, className, isMobile, ...props }) {
   return (
     <motion.a
-      whileHover={{ y: -2 }}
+      whileHover={isMobile ? undefined : { y: -2 }}
       whileTap={{ scale: 0.98 }}
       className={cx(
-        "inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-zinc-950/35 px-6 py-3 text-sm font-semibold text-white/90 backdrop-blur hover:bg-white/10",
+        "inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-zinc-950/35 px-6 py-3 text-sm font-semibold text-white/90 hover:bg-white/10",
+        isMobile ? "" : "backdrop-blur",
         className
       )}
       {...props}
@@ -381,7 +404,7 @@ function OutlineButton({ children, className, ...props }) {
   );
 }
 
-function AnimatedNumber({ value, label }) {
+function AnimatedNumber({ value, label, isMobile }) {
   const ref = useRef(null);
   const on = useOnScreen(ref, {
     root: null,
@@ -396,7 +419,7 @@ function AnimatedNumber({ value, label }) {
     if (reduce) return setN(value);
 
     const start = performance.now();
-    const duration = 650; // ✅ mais rápido = menos frames
+    const duration = 620;
 
     const tick = (t) => {
       const p = Math.min(1, (t - start) / duration);
@@ -415,8 +438,11 @@ function AnimatedNumber({ value, label }) {
       initial="hidden"
       whileInView="show"
       viewport={viewportOnce}
-      whileHover={{ y: -1 }}
-      className="rounded-2xl border border-white/10 bg-zinc-950/35 p-4 backdrop-blur"
+      whileHover={isMobile ? undefined : { y: -1 }}
+      className={cx(
+        "rounded-2xl border border-white/10 bg-zinc-950/35 p-4",
+        isMobile ? "" : "backdrop-blur"
+      )}
     >
       <div className="text-2xl font-semibold text-white">{n}</div>
       <div className="text-sm text-white/70">{label}</div>
@@ -424,16 +450,19 @@ function AnimatedNumber({ value, label }) {
   );
 }
 
-function Feature({ icon: Icon, title, body }) {
+function Feature({ icon: Icon, title, body, isMobile }) {
   return (
     <motion.div
       variants={fadeUp}
       initial="hidden"
       whileInView="show"
       viewport={viewportOnce}
-      whileHover={{ y: -3 }}
+      whileHover={isMobile ? undefined : { y: -3 }}
       transition={{ duration: 0.22, ease: "easeOut" }}
-      className="rounded-2xl border border-white/10 bg-zinc-950/35 p-6 shadow-sm backdrop-blur"
+      className={cx(
+        "rounded-2xl border border-white/10 bg-zinc-950/35 p-6 shadow-sm",
+        isMobile ? "" : "backdrop-blur"
+      )}
     >
       <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
         <Icon className="h-5 w-5 text-white" />
@@ -444,23 +473,30 @@ function Feature({ icon: Icon, title, body }) {
   );
 }
 
-function InfluencerCard({ data }) {
+function InfluencerCard({ data, isMobile }) {
   return (
     <motion.div
       variants={fadeUp}
       initial="hidden"
       whileInView="show"
       viewport={viewportOnce}
-      whileHover={{ y: -4 }}
+      whileHover={isMobile ? undefined : { y: -4 }}
       transition={{ duration: 0.22, ease: "easeOut" }}
-      className="group overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/35 shadow-sm backdrop-blur"
+      className={cx(
+        "group overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/35 shadow-sm",
+        isMobile ? "" : "backdrop-blur"
+      )}
     >
       <div className="relative aspect-[4/3] overflow-hidden">
         <img
           src={data.photo}
           alt={data.name}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+          className={cx(
+            "h-full w-full object-cover transition-transform duration-500",
+            isMobile ? "" : "group-hover:scale-[1.04]"
+          )}
           loading="lazy"
+          decoding="async"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
         <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
@@ -492,15 +528,15 @@ function InfluencerCard({ data }) {
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-3">
-          <div className="rounded-2xl border border-white/10 bg-zinc-950/35 p-4 backdrop-blur">
+          <div className={cx("rounded-2xl border border-white/10 bg-zinc-950/35 p-4", isMobile ? "" : "backdrop-blur")}>
             <div className="text-2xl font-semibold text-white">{data.reach}</div>
             <div className="text-sm text-white/70">Alcance</div>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-zinc-950/35 p-4 backdrop-blur">
+          <div className={cx("rounded-2xl border border-white/10 bg-zinc-950/35 p-4", isMobile ? "" : "backdrop-blur")}>
             <div className="text-2xl font-semibold text-white">{data.collabs}</div>
             <div className="text-sm text-white/70">Collabs</div>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-zinc-950/35 p-4 backdrop-blur">
+          <div className={cx("rounded-2xl border border-white/10 bg-zinc-950/35 p-4", isMobile ? "" : "backdrop-blur")}>
             <div className="text-2xl font-semibold text-white">Reels</div>
             <div className="text-sm text-white/70">Formato</div>
           </div>
@@ -512,7 +548,7 @@ function InfluencerCard({ data }) {
   );
 }
 
-function FaqItem({ q, a }) {
+function FaqItem({ q, a, isMobile }) {
   const [open, setOpen] = useState(false);
   return (
     <motion.div
@@ -520,7 +556,10 @@ function FaqItem({ q, a }) {
       initial="hidden"
       whileInView="show"
       viewport={viewportOnce}
-      className="rounded-2xl border border-white/10 bg-zinc-950/35 p-5 backdrop-blur"
+      className={cx(
+        "rounded-2xl border border-white/10 bg-zinc-950/35 p-5",
+        isMobile ? "" : "backdrop-blur"
+      )}
     >
       <button
         onClick={() => setOpen((v) => !v)}
@@ -541,7 +580,7 @@ function FaqItem({ q, a }) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             className="overflow-hidden"
           >
             <p className="mt-3 text-sm leading-relaxed text-white/70">{a}</p>
@@ -552,18 +591,20 @@ function FaqItem({ q, a }) {
   );
 }
 
-// ✅ MAIS LEVE: sem tilt 3D com mouse (mantém “glow” e profundidade estática)
-function HeroCardShell({ children }) {
-  const reduce = useReducedMotion();
+// ✅ shell do hero sem tilt 3D (mais leve)
+function HeroCardShell({ children, isMobile }) {
   return (
     <div className="relative">
-      <div
-        className="absolute inset-0 -z-10 rounded-3xl blur-2xl"
-        style={{ background: "rgba(255,209,0,.06)" }}
-      />
+      {!isMobile ? (
+        <div
+          className="absolute inset-0 -z-10 rounded-3xl blur-2xl"
+          style={{ background: "rgba(255,209,0,.06)" }}
+        />
+      ) : null}
+
       <motion.div
-        whileHover={reduce ? undefined : { y: -3 }}
-        transition={{ duration: 0.22, ease: "easeOut" }}
+        whileHover={isMobile ? undefined : { y: -3 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
       >
         {children}
       </motion.div>
@@ -571,7 +612,7 @@ function HeroCardShell({ children }) {
   );
 }
 
-function Navbar({ activeId }) {
+function Navbar({ activeId, isMobile }) {
   const items = [
     { id: "por-que", label: "Por que a Everest" },
     { id: "beneficios", label: "Benefícios" },
@@ -581,7 +622,7 @@ function Navbar({ activeId }) {
   ];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/70 backdrop-blur">
+    <header className={cx("sticky top-0 z-40 border-b border-white/10 bg-zinc-950/70", isMobile ? "" : "backdrop-blur")}>
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-6">
         <a
           href="#top"
@@ -598,7 +639,10 @@ function Navbar({ activeId }) {
             className="relative grid h-10 w-10 place-items-center overflow-hidden rounded-2xl bg-white/10"
           >
             <div
-              className="absolute -top-1 -right-1 grid h-5 w-5 place-items-center rounded-full border border-white/10 bg-zinc-950/50 backdrop-blur"
+              className={cx(
+                "absolute -top-1 -right-1 grid h-5 w-5 place-items-center rounded-full border border-white/10 bg-zinc-950/50",
+                isMobile ? "" : "backdrop-blur"
+              )}
               title="EVRST"
             >
               <Crown className="h-3.5 w-3.5" style={{ color: EVRST.gold }} />
@@ -647,7 +691,10 @@ function Navbar({ activeId }) {
             href={BRAND.links.instagram}
             target="_blank"
             rel="noreferrer"
-            className="hidden rounded-full border border-white/10 bg-zinc-950/35 px-4 py-2 text-sm text-white/80 hover:bg-white/10 md:inline-flex"
+            className={cx(
+              "hidden rounded-full border border-white/10 bg-zinc-950/35 px-4 py-2 text-sm text-white/80 hover:bg-white/10 md:inline-flex",
+              isMobile ? "" : "backdrop-blur"
+            )}
           >
             Instagram
           </a>
@@ -656,7 +703,7 @@ function Navbar({ activeId }) {
             href={APPLY_LINK}
             target="_blank"
             rel="noreferrer"
-            whileHover={{ y: -2 }}
+            whileHover={isMobile ? undefined : { y: -2 }}
             whileTap={{ scale: 0.98 }}
             className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-zinc-950 shadow-sm"
             style={{ background: goldGrad }}
@@ -670,8 +717,22 @@ function Navbar({ activeId }) {
   );
 }
 
-function DragCarousel({ children }) {
-  // ✅ Mantém drag (leve), mas evita recalcular 1000x
+// ✅ MOBILE: scroll nativo com snap (suave) / DESKTOP: drag framer
+function DragCarousel({ children, isMobile }) {
+  if (isMobile) {
+    return (
+      <div className="-mx-4 overflow-x-auto px-4">
+        <div className="flex gap-4 snap-x snap-mandatory">
+          {React.Children.map(children, (child, idx) => (
+            <div key={idx} className="snap-start">
+              {child}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   const outerRef = useRef(null);
   const innerRef = useRef(null);
   const [constraints, setConstraints] = useState({ left: 0, right: 0 });
@@ -698,11 +759,7 @@ function DragCarousel({ children }) {
   }, []);
 
   return (
-    <motion.div
-      ref={outerRef}
-      className="cursor-grab overflow-hidden"
-      whileTap={{ cursor: "grabbing" }}
-    >
+    <motion.div ref={outerRef} className="cursor-grab overflow-hidden" whileTap={{ cursor: "grabbing" }}>
       <motion.div
         ref={innerRef}
         drag="x"
@@ -718,6 +775,7 @@ function DragCarousel({ children }) {
 
 export default function EverestInfluencersLanding() {
   const reduce = useReducedMotion();
+  const isMobile = useIsMobile();
 
   const activeId = useActiveSection([
     "por-que",
@@ -745,15 +803,12 @@ export default function EverestInfluencersLanding() {
     msg
   )}`;
 
-  // Scroll progress bar (ok, leve)
+  // Scroll progress bar (leve)
   const { scrollYProgress } = useScroll();
   const progress = useSpring(scrollYProgress, { stiffness: 140, damping: 28 });
 
   return (
-    <div
-      className="relative min-h-screen text-white"
-      style={{ backgroundColor: EVRST.bg0 }}
-    >
+    <div className="relative min-h-screen text-white" style={{ backgroundColor: EVRST.bg0 }}>
       {/* keyframes (shimmer) */}
       <style>{`
         @keyframes shine { 
@@ -768,7 +823,7 @@ export default function EverestInfluencersLanding() {
         style={{ scaleX: progress, background: goldGrad }}
       />
 
-      {/* Background — EVRST (mais leve, sem blobs infinitos pesados) */}
+      {/* Background — mais leve no mobile */}
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div
           className="absolute inset-0"
@@ -783,7 +838,6 @@ export default function EverestInfluencersLanding() {
           }}
         />
 
-        {/* textura sutil (mantém), mas reduz blur e opacidade */}
         <div
           className="absolute inset-0 opacity-[0.05] mix-blend-soft-light"
           style={{
@@ -792,12 +846,12 @@ export default function EverestInfluencersLanding() {
             backgroundSize: "560px 560px",
             backgroundPosition: "center",
             transform: "rotate(-18deg) scale(1.12)",
-            filter: "blur(0.5px)",
+            filter: isMobile ? "none" : "blur(0.5px)",
           }}
         />
 
-        {/* ✅ Um único glow bem lento (opcional) */}
-        {!reduce ? (
+        {/* ✅ glow bem leve (desliga no mobile) */}
+        {!reduce && !isMobile ? (
           <motion.div
             className="absolute right-[-80px] top-40 h-80 w-80 rounded-full blur-3xl"
             style={{ background: "rgba(255,209,0,.07)" }}
@@ -807,16 +861,16 @@ export default function EverestInfluencersLanding() {
         ) : null}
       </div>
 
-      <Navbar activeId={activeId} />
+      <Navbar activeId={activeId} isMobile={isMobile} />
 
       {/* Hero */}
       <main id="top" className="mx-auto max-w-6xl px-4 py-16 md:px-6 md:py-20">
         <div className="grid items-center gap-10 md:grid-cols-2">
           <motion.div variants={stagger} initial="hidden" animate="show">
             <motion.div variants={stagger} className="flex flex-wrap gap-2">
-              <Pill icon={Users}>Parcerias reais</Pill>
-              <Pill icon={BadgeCheck}>Briefing + liberdade criativa</Pill>
-              <Pill icon={Gift}>Permuta + comissão</Pill>
+              <Pill icon={Users} isMobile={isMobile}>Parcerias reais</Pill>
+              <Pill icon={BadgeCheck} isMobile={isMobile}>Briefing + liberdade criativa</Pill>
+              <Pill icon={Gift} isMobile={isMobile}>Permuta + comissão</Pill>
             </motion.div>
 
             <motion.h1
@@ -861,15 +915,12 @@ export default function EverestInfluencersLanding() {
               juntos.
             </motion.p>
 
-            <motion.div
-              variants={fadeUp}
-              className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
-            >
+            <motion.div variants={fadeUp} className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <motion.a
                 href={APPLY_LINK}
                 target="_blank"
                 rel="noreferrer"
-                whileHover={{ y: -2 }}
+                whileHover={isMobile ? undefined : { y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 className="relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-3 text-sm font-semibold text-zinc-950 hover:opacity-95"
                 style={{ background: goldGrad }}
@@ -878,6 +929,7 @@ export default function EverestInfluencersLanding() {
               </motion.a>
 
               <OutlineButton
+                isMobile={isMobile}
                 href="#influenciadores"
                 onClick={(e) => {
                   e.preventDefault();
@@ -890,7 +942,7 @@ export default function EverestInfluencersLanding() {
 
             <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {counters.map((s) => (
-                <AnimatedNumber key={s.label} label={s.label} value={s.value} />
+                <AnimatedNumber key={s.label} label={s.label} value={s.value} isMobile={isMobile} />
               ))}
             </div>
           </motion.div>
@@ -901,8 +953,8 @@ export default function EverestInfluencersLanding() {
             transition={{ duration: 0.6, ease: easeOut, delay: 0.03 }}
             className="relative"
           >
-            <HeroCardShell>
-              <GradientBorderCard>
+            <HeroCardShell isMobile={isMobile}>
+              <GradientBorderCard isMobile={isMobile}>
                 <div className="overflow-hidden rounded-3xl">
                   {/* ✅ grid com 3 fotos (1 comprida em cima + 2 embaixo) */}
                   <div className="grid grid-cols-2 gap-0">
@@ -911,8 +963,13 @@ export default function EverestInfluencersLanding() {
                       <img
                         src="/arthur.jpg"
                         alt="Artur Zaltsman"
-                        className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.04]"
-                        loading="lazy"
+                        className={cx(
+                          "h-full w-full object-cover transition-transform duration-500",
+                          isMobile ? "" : "hover:scale-[1.04]"
+                        )}
+                        loading="eager"
+                        fetchpriority="high"
+                        decoding="async"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                     </div>
@@ -922,8 +979,12 @@ export default function EverestInfluencersLanding() {
                       <img
                         src="/geysla.jpg"
                         alt="Geysla"
-                        className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.04]"
+                        className={cx(
+                          "h-full w-full object-cover transition-transform duration-500",
+                          isMobile ? "" : "hover:scale-[1.04]"
+                        )}
                         loading="lazy"
+                        decoding="async"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                     </div>
@@ -933,8 +994,12 @@ export default function EverestInfluencersLanding() {
                       <img
                         src="/rayssa.jpg"
                         alt="Raissa"
-                        className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.04]"
+                        className={cx(
+                          "h-full w-full object-cover transition-transform duration-500",
+                          isMobile ? "" : "hover:scale-[1.04]"
+                        )}
                         loading="lazy"
+                        decoding="async"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                     </div>
@@ -952,35 +1017,36 @@ export default function EverestInfluencersLanding() {
                           próximo — com estética e padrão.
                         </p>
                       </div>
-                      <div className="hidden rounded-2xl border border-white/10 bg-zinc-950/35 p-3 text-xs text-white/70 md:block">
+                      <div className={cx(
+                        "hidden rounded-2xl border border-white/10 bg-zinc-950/35 p-3 text-xs text-white/70 md:block",
+                        isMobile ? "" : "backdrop-blur"
+                      )}>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4" style={{ color: EVRST.gold }} />
                           Próxima campanha
                         </div>
-                        <div className="mt-2 text-base font-semibold text-white">
-                          Semanal
-                        </div>
+                        <div className="mt-2 text-base font-semibold text-white">Semanal</div>
                       </div>
                     </div>
 
                     <div className="mt-5 flex flex-wrap gap-2">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-3 py-1 text-xs text-white/80">
-                        <Camera className="h-3.5 w-3.5" style={{ color: EVRST.gold }} />{" "}
-                        Reels + Stories
+                      <span className={cx(
+                        "inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-3 py-1 text-xs text-white/80",
+                        isMobile ? "" : "backdrop-blur"
+                      )}>
+                        <Camera className="h-3.5 w-3.5" style={{ color: EVRST.gold }} /> Reels + Stories
                       </span>
-                      <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-3 py-1 text-xs text-white/80">
-                        <MessageCircle
-                          className="h-3.5 w-3.5"
-                          style={{ color: EVRST.gold }}
-                        />{" "}
-                        Conteúdo UGC
+                      <span className={cx(
+                        "inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-3 py-1 text-xs text-white/80",
+                        isMobile ? "" : "backdrop-blur"
+                      )}>
+                        <MessageCircle className="h-3.5 w-3.5" style={{ color: EVRST.gold }} /> Conteúdo UGC
                       </span>
-                      <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-3 py-1 text-xs text-white/80">
-                        <BadgeCheck
-                          className="h-3.5 w-3.5"
-                          style={{ color: EVRST.gold }}
-                        />{" "}
-                        Tracking + Cupom
+                      <span className={cx(
+                        "inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-3 py-1 text-xs text-white/80",
+                        isMobile ? "" : "backdrop-blur"
+                      )}>
+                        <BadgeCheck className="h-3.5 w-3.5" style={{ color: EVRST.gold }} /> Tracking + Cupom
                       </span>
                     </div>
                   </div>
@@ -993,6 +1059,7 @@ export default function EverestInfluencersLanding() {
         {/* Why */}
         <section id="por-que" className="mt-20">
           <SectionTitle
+            isMobile={isMobile}
             kicker="Por que trabalhar com a gente"
             title="Uma marca que trata creator como parceiro"
             subtitle="Campanhas com organização, estética e liberdade — sem bagunça, sem promessa vazia."
@@ -1006,16 +1073,19 @@ export default function EverestInfluencersLanding() {
             className="grid gap-4 md:grid-cols-3"
           >
             <Feature
+              isMobile={isMobile}
               icon={BadgeCheck}
               title="Briefing claro"
               body="Objetivo, prazos e entregas definidos — pra você criar com confiança e evitar retrabalho."
             />
             <Feature
+              isMobile={isMobile}
               icon={ShieldCheck}
               title="Parceria transparente"
               body="Modelo de remuneração combinado antes: permuta, fee e/ou comissão via cupom rastreável."
             />
             <Feature
+              isMobile={isMobile}
               icon={Sparkles}
               title="Criatividade em primeiro lugar"
               body="A gente dá direção, mas a sua linguagem vem antes. Conteúdo autêntico performa melhor."
@@ -1029,32 +1099,17 @@ export default function EverestInfluencersLanding() {
             viewport={viewportOnce}
             className="mt-8 grid gap-4 md:grid-cols-4"
           >
-            <Feature
-              icon={Users}
-              title="Comunidade"
-              body="Creators trocando ideia e crescendo juntos — networking que soma."
-            />
-            <Feature
-              icon={Gift}
-              title="Kits e lançamentos"
-              body="Acesso a produtos e campanhas especiais para você testar antes e contar histórias reais."
-            />
-            <Feature
-              icon={Star}
-              title="Destaque no perfil"
-              body="Os melhores conteúdos ganham repost e vitrine no nosso site/canais."
-            />
-            <Feature
-              icon={Handshake}
-              title="Longo prazo"
-              body="Se encaixar, a parceria evolui: calendário, metas e recorrência."
-            />
+            <Feature isMobile={isMobile} icon={Users} title="Comunidade" body="Creators trocando ideia e crescendo juntos — networking que soma." />
+            <Feature isMobile={isMobile} icon={Gift} title="Kits e lançamentos" body="Acesso a produtos e campanhas especiais para você testar antes e contar histórias reais." />
+            <Feature isMobile={isMobile} icon={Star} title="Destaque no perfil" body="Os melhores conteúdos ganham repost e vitrine no nosso site/canais." />
+            <Feature isMobile={isMobile} icon={Handshake} title="Longo prazo" body="Se encaixar, a parceria evolui: calendário, metas e recorrência." />
           </motion.div>
         </section>
 
         {/* Benefits */}
         <section id="beneficios" className="mt-20">
           <SectionTitle
+            isMobile={isMobile}
             kicker="Benefícios"
             title="Você cria. A gente impulsiona."
             subtitle="Aqui vai o que você pode esperar do programa (e o que a gente espera de você também)."
@@ -1067,7 +1122,7 @@ export default function EverestInfluencersLanding() {
             viewport={viewportOnce}
             className="grid gap-4 md:grid-cols-2"
           >
-            <GradientBorderCard>
+            <GradientBorderCard isMobile={isMobile}>
               <div className="p-6">
                 <h3 className="text-lg font-semibold">O que você ganha</h3>
                 <ul className="mt-4 space-y-3 text-sm text-white/75">
@@ -1081,35 +1136,27 @@ export default function EverestInfluencersLanding() {
                   </li>
                   <li className="flex gap-3">
                     <Star className="mt-0.5 h-5 w-5" style={{ color: EVRST.gold }} />
-                    <span>
-                      Destaque em campanhas, reposts e collabs com outros creators.
-                    </span>
+                    <span>Destaque em campanhas, reposts e collabs com outros creators.</span>
                   </li>
                   <li className="flex gap-3">
                     <Users className="mt-0.5 h-5 w-5" style={{ color: EVRST.gold }} />
-                    <span>
-                      Relacionamento com time de marketing: feedback, acompanhamento e evolução.
-                    </span>
+                    <span>Relacionamento com time de marketing: feedback, acompanhamento e evolução.</span>
                   </li>
                 </ul>
               </div>
             </GradientBorderCard>
 
-            <GradientBorderCard>
+            <GradientBorderCard isMobile={isMobile}>
               <div className="p-6">
                 <h3 className="text-lg font-semibold">O que a gente procura</h3>
                 <ul className="mt-4 space-y-3 text-sm text-white/75">
                   <li className="flex gap-3">
                     <BadgeCheck className="mt-0.5 h-5 w-5" style={{ color: EVRST.gold }} />
-                    <span>
-                      Consistência de postagem e linguagem alinhada com seu público.
-                    </span>
+                    <span>Consistência de postagem e linguagem alinhada com seu público.</span>
                   </li>
                   <li className="flex gap-3">
                     <Camera className="mt-0.5 h-5 w-5" style={{ color: EVRST.gold }} />
-                    <span>
-                      Qualidade mínima de vídeo/foto (não precisa ser perfeito — precisa ser claro).
-                    </span>
+                    <span>Qualidade mínima de vídeo/foto (não precisa ser perfeito — precisa ser claro).</span>
                   </li>
                   <li className="flex gap-3">
                     <Handshake className="mt-0.5 h-5 w-5" style={{ color: EVRST.gold }} />
@@ -1127,7 +1174,7 @@ export default function EverestInfluencersLanding() {
 
         {/* How it works */}
         <section id="como-funciona" className="mt-20">
-          <SectionTitle kicker="Processo" title="Como funciona" subtitle="Simples, rápido e sem enrolação." />
+          <SectionTitle isMobile={isMobile} kicker="Processo" title="Como funciona" subtitle="Simples, rápido e sem enrolação." />
 
           <motion.div
             variants={stagger}
@@ -1146,11 +1193,9 @@ export default function EverestInfluencersLanding() {
 
               return (
                 <motion.div key={t} variants={fadeUp}>
-                  <GradientBorderCard>
+                  <GradientBorderCard isMobile={isMobile}>
                     <div className="p-6">
-                      <div className="text-xs uppercase tracking-wider text-white/60">
-                        Passo 0{i + 1}
-                      </div>
+                      <div className="text-xs uppercase tracking-wider text-white/60">Passo 0{i + 1}</div>
                       <h3 className="mt-2 text-lg font-semibold">{t}</h3>
                       <p className="mt-2 text-sm text-white/70">{desc}</p>
                     </div>
@@ -1160,14 +1205,8 @@ export default function EverestInfluencersLanding() {
             })}
           </motion.div>
 
-          <motion.div
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={viewportOnce}
-            className="mt-8"
-          >
-            <GradientBorderCard>
+          <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={viewportOnce} className="mt-8">
+            <GradientBorderCard isMobile={isMobile}>
               <div className="p-6 md:p-7">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div>
@@ -1178,6 +1217,7 @@ export default function EverestInfluencersLanding() {
                   </div>
 
                   <ShineButton
+                    isMobile={isMobile}
                     href={APPLY_LINK}
                     target="_blank"
                     rel="noreferrer"
@@ -1194,16 +1234,17 @@ export default function EverestInfluencersLanding() {
         {/* Influencers */}
         <section id="influenciadores" className="mt-20">
           <SectionTitle
+            isMobile={isMobile}
             kicker="Creators Everest"
             title="Quem já cria com a gente"
             subtitle="Creators que já estão no topo com a gente. Arraste pro lado."
           />
 
           <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={viewportOnce}>
-            <DragCarousel>
+            <DragCarousel isMobile={isMobile}>
               {mockInfluencers.map((p) => (
                 <div key={p.handle} className="min-w-[320px] md:min-w-[420px]">
-                  <InfluencerCard data={p} />
+                  <InfluencerCard data={p} isMobile={isMobile} />
                 </div>
               ))}
             </DragCarousel>
@@ -1213,6 +1254,7 @@ export default function EverestInfluencersLanding() {
         {/* Testimonials */}
         <section className="mt-20">
           <SectionTitle
+            isMobile={isMobile}
             kicker="O que falam"
             title="Depoimentos"
             subtitle="Parcerias de verdade são construídas com respeito, clareza e resultado."
@@ -1227,7 +1269,7 @@ export default function EverestInfluencersLanding() {
           >
             {testimonials.map((t) => (
               <motion.div key={t.name} variants={fadeUp}>
-                <GradientBorderCard>
+                <GradientBorderCard isMobile={isMobile}>
                   <div className="p-6">
                     <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
                       <t.icon className="h-5 w-5" style={{ color: EVRST.gold }} />
@@ -1244,6 +1286,7 @@ export default function EverestInfluencersLanding() {
         {/* FAQ */}
         <section id="faq" className="mt-20">
           <SectionTitle
+            isMobile={isMobile}
             kicker="FAQ"
             title="Dúvidas frequentes"
             subtitle="Se ainda ficar alguma dúvida, chama no WhatsApp ou manda e-mail."
@@ -1257,7 +1300,7 @@ export default function EverestInfluencersLanding() {
             className="grid gap-4 md:grid-cols-2"
           >
             {faqs.map((f) => (
-              <FaqItem key={f.q} q={f.q} a={f.a} />
+              <FaqItem key={f.q} q={f.q} a={f.a} isMobile={isMobile} />
             ))}
           </motion.div>
 
@@ -1272,14 +1315,20 @@ export default function EverestInfluencersLanding() {
               href={link}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-zinc-950/35 px-6 py-3 text-sm font-semibold text-white/90 hover:bg-white/10"
+              className={cx(
+                "inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-zinc-950/35 px-6 py-3 text-sm font-semibold text-white/90 hover:bg-white/10",
+                isMobile ? "" : "backdrop-blur"
+              )}
             >
               Falar no WhatsApp
             </a>
 
             <a
               href={BRAND.links.email}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-zinc-950/35 px-6 py-3 text-sm font-semibold text-white/90 hover:bg-white/10"
+              className={cx(
+                "inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-zinc-950/35 px-6 py-3 text-sm font-semibold text-white/90 hover:bg-white/10",
+                isMobile ? "" : "backdrop-blur"
+              )}
             >
               <Mail className="h-4 w-4" style={{ color: EVRST.gold }} />
               Enviar e-mail
@@ -1290,12 +1339,14 @@ export default function EverestInfluencersLanding() {
         {/* CTA */}
         <section className="mt-20">
           <motion.div variants={fadeUp} initial="hidden" whileInView="show" viewport={viewportOnce}>
-            <GradientBorderCard>
+            <GradientBorderCard isMobile={isMobile}>
               <div className="relative overflow-hidden p-8 md:p-10">
-                {/* ✅ remove blobs animados do CTA (muito blur + infinito) */}
                 <div className="relative grid gap-6 md:grid-cols-2 md:items-center">
                   <div>
-                    <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-4 py-2 text-xs uppercase tracking-wider text-white/80">
+                    <div className={cx(
+                      "inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-4 py-2 text-xs uppercase tracking-wider text-white/80",
+                      isMobile ? "" : "backdrop-blur"
+                    )}>
                       <BadgeCheck className="h-4 w-4" style={{ color: EVRST.gold }} />
                       Parceria com padrão
                     </div>
@@ -1309,6 +1360,7 @@ export default function EverestInfluencersLanding() {
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                     <ShineButton
+                      isMobile={isMobile}
                       href={APPLY_LINK}
                       target="_blank"
                       rel="noreferrer"
@@ -1318,6 +1370,7 @@ export default function EverestInfluencersLanding() {
                     </ShineButton>
 
                     <OutlineButton
+                      isMobile={isMobile}
                       href={
                         "https://www.instagram.com/everestofc?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
                       }
@@ -1343,7 +1396,10 @@ export default function EverestInfluencersLanding() {
 
             <div className="flex flex-wrap gap-3">
               <a
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-4 py-2 text-sm text-white/80 hover:bg-white/10"
+                className={cx(
+                  "inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-4 py-2 text-sm text-white/80 hover:bg-white/10",
+                  isMobile ? "" : "backdrop-blur"
+                )}
                 href={"https://www.lojaseverest.com.br/"}
                 target="_blank"
                 rel="noreferrer"
@@ -1352,7 +1408,10 @@ export default function EverestInfluencersLanding() {
               </a>
 
               <a
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-4 py-2 text-sm text-white/80 hover:bg-white/10"
+                className={cx(
+                  "inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-4 py-2 text-sm text-white/80 hover:bg-white/10",
+                  isMobile ? "" : "backdrop-blur"
+                )}
                 href={
                   "https://www.instagram.com/everestofc?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
                 }
@@ -1363,10 +1422,11 @@ export default function EverestInfluencersLanding() {
               </a>
 
               <a
-                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-4 py-2 text-sm text-white/80 hover:bg-white/10"
-                href={`https://wa.me/5512981858797?text=${encodeURIComponent(
-                  "Olá! Tenho interesse em participar do programa de embaixadores da Everest e gostaria de tirar algumas dúvidas sobre como funciona."
-                )}`}
+                className={cx(
+                  "inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/35 px-4 py-2 text-sm text-white/80 hover:bg-white/10",
+                  isMobile ? "" : "backdrop-blur"
+                )}
+                href={`https://wa.me/5512981858797?text=${encodeURIComponent(msg)}`}
                 target="_blank"
                 rel="noreferrer"
               >
