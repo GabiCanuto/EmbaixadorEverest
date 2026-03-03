@@ -88,7 +88,8 @@ const mockInfluencers = [
     photo: "/geysla.jpg",
     quote:
       "Amei a parceria: liberdade pra criar, produto lindo e um suporte que realmente acompanha.",
-    social: "https://www.instagram.com/geymarins?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==",
+    social:
+      "https://www.instagram.com/geymarins?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==",
   },
   {
     name: "Raissa",
@@ -100,7 +101,8 @@ const mockInfluencers = [
     photo: "/rayssa.jpg",
     quote:
       "Campanha bem organizada e resultado real. É parceria que dá gosto de fazer.",
-    social: "https://www.instagram.com/raissa.everest?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==",
+    social:
+      "https://www.instagram.com/raissa.everest?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==",
   },
 ];
 
@@ -992,32 +994,52 @@ export default function EverestInfluencersLanding() {
             <HeroTiltCard>
               <GradientBorderCard>
                 <div className="overflow-hidden rounded-3xl">
+                  {/* ✅ AJUSTE: grid com 3 fotos (1 comprida em cima + 2 embaixo) */}
                   <div className="grid grid-cols-2 gap-0">
-                    {[
-                      { src: "/video01.mp4", alt: "Vídeo 01" },
-                      { src: "/video02.mp4", alt: "Vídeo 02" },
-                      { src: "/video03.mp4", alt: "Vídeo 03" },
-                      { src: "/video04.mp4", alt: "Vídeo 04" },
-                    ].map((v, idx) => (
-                      <motion.video
-                        key={v.src}
-                        className="aspect-square w-full object-cover"
-                        src={v.src}
-                        aria-label={v.alt}
-                        muted
-                        playsInline
-                        autoPlay
-                        loop
-                        preload="metadata"
-                        initial={{ opacity: 0, scale: 1.04 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{
-                          duration: 0.75,
-                          delay: 0.08 + idx * 0.06,
-                          ease: easeOut,
-                        }}
+                    {/* Topo (comprida) */}
+                    <motion.div
+                      className="relative col-span-2 aspect-[16/9] overflow-hidden"
+                      initial={{ opacity: 0, scale: 1.04 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.75, delay: 0.08, ease: easeOut }}
+                    >
+                      <img
+                        src="/arthur.jpg"
+                        alt="Artur Zaltsman"
+                        className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.06]"
                       />
-                    ))}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                    </motion.div>
+
+                    {/* Inferior esquerda */}
+                    <motion.div
+                      className="relative aspect-square overflow-hidden"
+                      initial={{ opacity: 0, scale: 1.04 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.75, delay: 0.14, ease: easeOut }}
+                    >
+                      <img
+                        src="/geysla.jpg"
+                        alt="Geysla"
+                        className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.06]"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                    </motion.div>
+
+                    {/* Inferior direita */}
+                    <motion.div
+                      className="relative aspect-square overflow-hidden"
+                      initial={{ opacity: 0, scale: 1.04 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.75, delay: 0.20, ease: easeOut }}
+                    >
+                      <img
+                        src="/rayssa.jpg"
+                        alt="Raissa"
+                        className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.06]"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                    </motion.div>
                   </div>
 
                   <div className="p-6">
@@ -1360,7 +1382,10 @@ export default function EverestInfluencersLanding() {
                 <GradientBorderCard>
                   <div className="p-6">
                     <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
-                      <t.icon className="h-5 w-5" style={{ color: EVRST.gold }} />
+                      <t.icon
+                        className="h-5 w-5"
+                        style={{ color: EVRST.gold }}
+                      />
                     </div>
                     <div className="text-lg font-semibold">{t.name}</div>
                     <p className="mt-2 text-sm leading-relaxed text-white/70">
